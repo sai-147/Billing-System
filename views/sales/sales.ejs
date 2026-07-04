@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BILLING</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <%- include('../partials/header') %>
+        <div class="sales">
+            <h1>Filter & Sort Invoices</h1>
+
+            <!-- Enhanced Filter Form -->
+            <form method="GET" class="filter-form" action="/sales">
+
+                <!-- Start Date -->
+                <div class="filter-item">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate" name="startDate"
+                        value="<%= filters.startDate || '' %>">
+                </div>
+
+                <!-- End Date -->
+                <div class="filter-item">
+                    <label for="endDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate" name="endDate"
+                        value="<%= filters.endDate || '' %>">
+                </div>
+
+                <!-- Customer -->
+                <div class="filter-item">
+                    <label>Customer</label>
+
+                    <input list="customers" id="customerInput" name="customerName" placeholder="Type company name"
+                        value="<%= filters.customerName || '' %>">
+
+                    <input type="hidden" name="Customer_Id" id="customerId" value="<%= filters.Customer_Id || '' %>">
+
+                    <div style="color:red"></div>
+                    <datalist id="customers"></datalist>
+                </div>
+
+                <!-- Vehicle No -->
+                <div class="filter-item">
+                    <label for="vehicleNo" class="form-label">Vehicle No</label>
+                    <input type="text" class="form-control" id="vehicleNo" name="vehicleNo"
+                        value="<%= filters.vehicleNo || '' %>">
+                </div>
+
+                <!-- E-Way Bill No -->
+                <div class="filter-item">
+                    <label for="ewayBillNo" class="form-label">E-Way Bill No</label>
+                    <input type="text" class="form-control" id="ewayBillNo" name="ewayBillNo"
+                        value="<%= filters.ewayBillNo || '' %>">
+                </div>
+
+                <!-- Sort By -->
+                <div class="filter-item">
+                    <label for="sortBy" class="form-label">Sort By</label>
+                    <select class="form-select" id="sortBy" name="sortBy">
+                        <option value="Invoice_No" <%=filters.sortBy==='Invoice_No' ? 'selected' : '' %>>
+                            Invoice No
+                        </option>
+                        <option value="Sub_Total" <%=filters.sortBy==='Sub_Total' ? 'selected' : '' %>>
+                            Sub Total
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Count -->
+                <div class="filter-item">
+                    <label for="Count" class="form-label">Count</label>
+                    <select class="form-select" id="Count" name="Count">
+                        <% ['10','50','100'].forEach(c=> { %>
+                            <option value="<%= c %>" <%=filters.Count===c ? 'selected' : '' %>>
+                                <%= c %>
+                            </option>
+                            <% }) %>
+                    </select>
+                </div>
+
+                <!-- Order -->
+                <div class="filter-item">
+                    <label for="order" class="form-label">Order</label>
+                    <select class="form-select" id="order" name="order">
+                        <option value="DESC" <%=filters.order==='DESC' ? 'selected' : '' %>>
+                            DESC
+                        </option>
+                        <option value="ASC" <%=filters.order==='ASC' ? 'selected' : '' %>>
+                            ASC
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Submit -->
+                <div class="filter-item">
+                    <button type="submit" class="btn btn-primary me-2">
+                        Submit
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+        <!-- Results Table -->
+        <div id="results" class="results">
+            <!-- This will be dynamically populated; for now, sample list view -->
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>Date</th>
+                        <th>Customer's Company</th>
+                        <th>Sub Total (₹)</th>
+                        <th>E-Way Bill No</th>
+                        <th>Vehicle No</th>
+                        <th colspan="2" style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (invoices.length===0) { %>
+                        <tr>
+                            <td colspan="6">No records</td>
+                        </tr>
+                        <% } %>
+
+                            <% invoices.forEach(i=> { %>
+                                <tr>
+                                    <td>
+                                        <%= i.Invoice_No %>
+                                    </td>
+                                    <td>
+                                        <%= new Date(i.Invoice_Date).toISOString().split('T')[0] %>
+                                    </td>
+                                    <td>
+                                        <%= i.Company_Name %>
+                                    </td>
+                                    <td style="text-align:right">
+                                        <%= i.Sub_Total %>
+                                    </td>
+                                    <td>
+                                        <%= i.E_Way_Bill_No || '-' %>
+                                    </td>
+                                    <td>
+                                        <%= i.Vehicle_No || '-' %>
+                                    </td>
+                                    <td>
+                                        <a href=<%=`/get_invoice/${i.Invoice_No}`%>>Preview</a>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="delete-invoice" data-invoiceno="<%= i.Invoice_No %>">
+                                            Delete
+                                        </a>
+                                    </td>
+
+                                </tr>
+                                <% }) %>
+                </tbody>
+            </table>
+        </div>
+        <!-- Sample Pagination -->
+        <div class="pagination">
+            <% const q={ ...filters }; delete q.page; %>
+
+                <% if (pagination.totalPages> 1) { %>
+                    <nav aria-label="Pagination">
+                        <ul class="pagination justify-content-center">
+                            <% for (let p=1; p <=pagination.totalPages; p++) { %>
+                                <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
+                                    <a class="page-link"
+                                        href="/sales?page=<%= p %>&<%= new URLSearchParams(q).toString() %>">
+                                        <%= p %>
+                                    </a>
+                                </li>
+                                <% } %>
+                        </ul>
+                    </nav>
+                    <% } %>
+        </div>
+
+
+
+
+
+
+        <script>
+
+
+            document.addEventListener('click', async (e) => {
+                if (!e.target.classList.contains('delete-invoice')) return;
+
+                e.preventDefault();
+
+                const invoiceNo = e.target.dataset.invoiceno;
+                if (!invoiceNo) return;
+
+                const ok = confirm(`Delete Invoice ${invoiceNo}? This cannot be undone.`);
+                if (!ok) return;
+
+                try {
+                    const res = await fetch(`/sales/${invoiceNo}`, {
+                        method: 'DELETE'
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        alert(data.message || 'Delete failed');
+                        return;
+                    }
+                    else if (data.method !== null) {
+                        alert(data.message);
+                    }
+
+                    // Remove row from table
+                    e.target.closest('tr').remove();
+
+                } catch (err) {
+                    console.error(err);
+                    alert('Server error');
+                }
+            });
+
+
+            let customers = [];
+
+            async function loadCustomers() {
+                try {
+                    const res = await fetch('/select/customers');
+                    if (!res.ok) throw new Error('Fetch failed');
+
+                    const data = await res.json();
+                    if (!Array.isArray(data)) return;
+
+                    customers = data;
+
+                    const dl = document.getElementById('customers');
+                    dl.innerHTML = '';
+
+                    for (const { Company_Name, Id } of data) {
+                        const opt = document.createElement('option');
+                        opt.value = Company_Name;
+                        opt.dataset.id = Id;
+                        dl.appendChild(opt);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            loadCustomers();
+            document.getElementById('customerInput').addEventListener('input', e => {
+                // console.log(e.target.value);
+                const match = customers.find(c => c.Company_Name === e.target.value);
+                // console.log(match);
+                if (match) {
+                    // console.log("matched");
+                    document.getElementById('customerId').value = match.Id;
+                    const cid = document.getElementById('customerId');
+                    cid.nextElementSibling.innerHTML = '';
+                    loadCIN(match.Id);
+                }
+                else {
+                    const cid = document.getElementById('customerId');
+                    document.getElementById('customerId').value = null;
+                    cid.nextElementSibling.innerHTML = '!!Invalid Customer Detail!!';
+                }
+            });
+
+        </script>
+        <%- include('../partials/footer') %>
+</body>
+
+</html>

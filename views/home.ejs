@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BILLING</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <%- include('partials/header') %>
+        <!-- <a href="/invoice">click here</a> -->
+        <h2 class="invoice_title">Create New Invoice</h2>
+        <div class="pdf">
+            <a href="/latest_invoice/preview" class="btn btn-preview">Preview Last Invoice</a>
+            <a href="/latest_invoice/download" class="btn btn-download">Download Last Invoice</a>
+        </div>
+
+
+
+
+        <form id="invoiceForm" class="createInvoiceForm">
+            <!-- Header: Invoices Table -->
+            <div class="form_grid">
+                <div class="form-group">
+                    <label for="invoiceNo">Invoice No:</label>
+                    <input type="text" id="invoiceNo" name="Invoice_No" required placeholder="Auto-generated:">
+                </div>
+
+                <div class="form-group">
+                    <label for="InvoiceDate">Invoice Date:</label>
+                    <input type="date" id="InvoiceDate" name="Invoice_Date" required value=""> <!-- Default to today -->
+                </div>
+                <div class="form-group">
+                    <label for="BuyOrdNo">Buyer's Order No:</label>
+                    <input type="text" id="BuyOrdNo" name="BuyOrdNo" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label for="BuyOrdDate">Buyer's Order Date:</label>
+                    <input type="date" id="BuyOrdDate" name="BuyOrdDate" required value=""> <!-- Default to today -->
+                </div>
+                
+                
+
+                <div class="form-group">
+                    <label>Customer: </label>
+                    <input list="customers" id="customerInput" placeholder="Type company name">
+                    <input type="hidden" name="Customer_Id" id="customerId">
+                    <div style="color:red"></div>
+                    <datalist id="customers"></datalist>
+
+                </div>
+
+                <div class="form-group">
+                    <label for="ewayBill">E-Way Bill No:</label>
+                    <input type="text" id="ewayBill" name="E_Way_Bil_No" placeholder="Optional">
+                </div>
+
+                <div class="form-group">
+                    <label for="cinInput">CIN No: </label>
+                    <input list="cinList" id="cinInput" name="CIN_No" placeholder="Optional">
+                    <datalist id="cinList"></datalist>
+
+                </div>
+
+                <div class="form-group">
+                    <label for="challanNo">Challan No:</label>
+                    <input type="text" id="challanNo" name="Challan_No" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label for="ChallanDate">Challan Date:</label>
+                    <input type="date" id="ChallanDate" name="ChallanDate" required value=""> <!-- Default to today -->
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleNo">Vehicle No:</label>
+                    <input list="vehicleList" id="vehicleNo" name="Vehicle_No" placeholder="Optional">
+                    <datalist id="vehicleList"></datalist>
+                </div>
+                
+                <div class="form-group">
+                    <label for="TransporterName">Transporter Name:</label>
+                    <input list="TransporterList" id="TransporterName" name="Transporter_Name" placeholder="Optional">
+                    <datalist id="TransporterList"></datalist>
+                </div>
+                
+
+                <div class="form-group">
+                    <label for="bins">Bins:</label>
+                    <input type="number" id="bins" name="Bins" min="0" placeholder="Optional">
+                </div>
+
+                <div class="form-group">
+                    <label for="bags">Bags:</label>
+                    <input type="number" id="bags" name="Bags" min="0" placeholder="Optional">
+                </div>
+
+                <div class="form-group form-row">
+                    <label>GST Types:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="SGST_Included" value="1" checked> Include SGST</label>
+                        <label><input type="checkbox" name="CGST_Included" value="1" checked> Include CGST</label>
+                        <label><input type="checkbox" name="IGST_Included" value="1"> Include IGST</label>
+                    </div>
+                </div>
+
+                <!-- Line Items: Cart Table (Dynamic) -->
+                <div class="line-items form-row">
+                    <h3>Cart Items</h3>
+                    <datalist id="partsList"></datalist>
+
+                    <div id="lineItemsContainer"></div>
+
+                    <button type="button" id="addItemBtn">+ Add Item</button>
+                </div>
+
+                <div class="form-group form-row">
+                    <label>Sub Total: ₹<span id="subTotal">0.00</span></label>
+                    <input type="hidden" id="subTotalHidden" name="Sub_Total">
+                </div>
+
+                <button type="submit" id="submitBtn">Create Invoice</button>
+                <div id="submitStatus" class="submit-status"></div>
+
+            </div>
+
+        </form>
+
+
+
+        <script>
+
+
+            fetch('/select/InvoiceNo')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('invoiceNo').value = data.invoiceNo;
+                });
+
+            
+            document.getElementById('InvoiceDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('BuyOrdDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('ChallanDate').value = new Date().toISOString().split('T')[0];
+
+
+            let customers = [];
+
+            async function loadCustomers() {
+                try {
+                    const res = await fetch('/select/customers');
+                    if (!res.ok) throw new Error('Fetch failed');
+
+                    const data = await res.json();
+                    if (!Array.isArray(data)) return;
+
+                    customers = data;
+
+                    const dl = document.getElementById('customers');
+                    dl.innerHTML = '';
+
+                    for (const { Company_Name, Id } of data) {
+                        const opt = document.createElement('option');
+                        opt.value = Company_Name;
+                        opt.dataset.id = Id;
+                        dl.appendChild(opt);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            loadCustomers();
+            function loadCIN(customerId) {
+                const dl = document.getElementById('cinList');
+                dl.innerHTML = '';
+
+                if (!customerId) return;
+
+                fetch(`/select/${customerId}/cin`)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Failed to fetch CIN");
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!Array.isArray(data)) return;
+
+                        data.forEach(({ CIN_No }) => {
+                            const opt = document.createElement('option');
+                            opt.value = CIN_No;
+                            dl.appendChild(opt);
+                        });
+                    })
+                    .catch(err => {
+                        console.error(err);
+                    });
+            }
+            document.getElementById('customerInput').addEventListener('input', e => {
+                // console.log(e.target.value);
+                const match = customers.find(c => c.Company_Name === e.target.value);
+                // console.log(match);
+                if (match) {
+                    // console.log("matched");
+                    document.getElementById('customerId').value = match.Id;
+                    const cid = document.getElementById('customerId');
+                    cid.nextElementSibling.innerHTML = '';
+                    loadCIN(match.Id);
+                }
+                else {
+                    const cid = document.getElementById('customerId');
+                    document.getElementById('customerId').value = null;
+                    cid.nextElementSibling.innerHTML = '!!Invalid Customer Detail!!';
+                }
+            });
+
+            async function loadVehcleNo() {
+                try {
+                    const res = await fetch('/select/vehicleNo');
+                    if (!res.ok) throw new Error('Fetch failed');
+
+                    const data = await res.json();
+                    // console.log(data);
+                    if (!Array.isArray(data)) return;
+
+                    const dl = document.getElementById('vehicleList');
+                    dl.innerHTML = '';
+
+                    data.forEach(row => {
+                        const opt = document.createElement('option');
+                        opt.value = row.Vehicle_No;
+                        dl.appendChild(opt);
+                    });
+                    // console.log(dl);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            loadVehcleNo();
+            async function loadTransporterName() {
+                try {
+                    const res = await fetch('/select/TransporterName');
+                    if (!res.ok) throw new Error('Fetch failed');
+
+                    const data = await res.json();
+                    // console.log(data);
+                    if (!Array.isArray(data)) return;
+
+                    const dl = document.getElementById('TransporterList');
+                    dl.innerHTML = '';
+
+                    data.forEach(row => {
+                        const opt = document.createElement('option');
+                        opt.value = row.Transporter_Name;
+                        dl.appendChild(opt);
+                    });
+                    // console.log(dl);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            loadTransporterName();
+
+            let parts = [];
+
+            fetch('/select/parts')
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch parts');
+                    return res.json();
+                })
+                .then(data => {
+                    if (!Array.isArray(data)) return;
+
+                    parts = data;
+
+                    const dl = document.getElementById('partsList');
+                    dl.innerHTML = '';
+
+                    data.forEach(({ Part_Name, Part_No, Price }) => {
+                        const opt = document.createElement('option');
+
+                        // what user sees + types
+                        opt.value = `${Part_Name} (${Part_No})`;
+
+                        // real values stored separately
+                        opt.dataset.partName = Part_Name;
+                        opt.dataset.partNo = Part_No;
+                        opt.dataset.price = Price;
+
+                        dl.appendChild(opt);
+                    });
+
+                })
+                .catch(err => {
+                    console.error(err);
+                });
+
+            function calcSubtotal() {
+                let total = 0;
+
+                document.querySelectorAll('.line-item').forEach(row => {
+                    const qty = parseFloat(row.querySelector('[name="Qty[]"]').value) || 0;
+                    const price = parseFloat(row.querySelector('[name="Price[]"]').value) || 0;
+                    total += qty * price;
+                });
+
+                document.getElementById('subTotal').innerText = total.toFixed(2);
+                document.getElementById('subTotalHidden').value = total.toFixed(2);
+            }
+
+
+            function createLineItem() {
+                const row = document.createElement('div');
+                row.className = 'line-item';
+
+                row.innerHTML = `
+        <!-- Visible input -->
+        <input type="text" list="partsList" placeholder="Part name" required>
+
+        <!-- Hidden Part_No -->
+        <input type="hidden" name="Part_No[]">
+
+        <input type="number" name="Qty[]" min="1" placeholder = "Qty" required>
+
+        <span class="price-display">₹0.00</span>
+
+        <input type="hidden" name="Price[]">
+
+        <button type="button" class="danger">Remove</button>
+    `;
+
+                const partNameInput = row.querySelector('input[list]');
+                const partNoInput = row.querySelector('input[type="hidden"][name="Part_No[]"]');
+                const priceSpan = row.querySelector('.price-display');
+                const priceHidden = row.querySelector('input[name="Price[]"]');
+                const qtyInput = row.querySelector('input[name="Qty[]"]');
+
+                // when part selected
+                partNameInput.addEventListener('input', () => {
+                    const match = parts.find(
+                        p => `${p.Part_Name} (${p.Part_No})` === partNameInput.value
+                    );
+
+
+                    if (match) {
+                        partNoInput.value = match.Part_No;
+                        priceHidden.value = match.Price;
+                        priceSpan.textContent = `₹${match.Price}`;
+                        calcSubtotal();
+                    }
+                    else {
+                        priceSpan.textContent = `Invalid Part`;
+
+                    }
+
+                });
+
+
+                qtyInput.addEventListener('input', calcSubtotal);
+
+                row.querySelector('.danger').addEventListener('click', () => {
+                    const rows = document.querySelectorAll('.line-item');
+                    if (rows.length > 1) {
+                        row.remove();
+                        calcSubtotal();
+                    }
+                });
+
+                return row;
+            }
+
+            document.getElementById('addItemBtn').addEventListener('click', () => {
+                document.getElementById('lineItemsContainer')
+                    .appendChild(createLineItem());
+            });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('lineItemsContainer')
+                    .appendChild(createLineItem());
+            });
+
+            document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const form = e.target;
+                const submitBtn = document.getElementById('submitBtn');
+                const statusDiv = document.getElementById('submitStatus');
+
+                // UI: show processing
+                submitBtn.disabled = true;
+                statusDiv.textContent = 'Saving invoice...';
+                statusDiv.className = 'submit-status loading';
+
+                try {
+                    const formData = new FormData(form);
+                    const invoiceData = Object.fromEntries(formData.entries());
+                    // console.log(invoiceData);
+
+                    invoiceData.SGST_Included = formData.has('SGST_Included') ? 1 : 0;
+                    invoiceData.CGST_Included = formData.has('CGST_Included') ? 1 : 0;
+                    invoiceData.IGST_Included = formData.has('IGST_Included') ? 1 : 0;
+
+                    invoiceData.items = [];
+
+                    document.querySelectorAll('.line-item').forEach(row => {
+                        invoiceData.items.push({
+                            Part_No: row.querySelector('input[name="Part_No[]"]').value,
+                            Qty: Number(row.querySelector('input[name="Qty[]"]').value)
+                        });
+                    });
+
+                    const res = await fetch('/create/invoice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(invoiceData)
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        throw new Error(data.error || 'Invoice creation failed');
+                    }
+
+                    // UI: success
+                    statusDiv.textContent = `Invoice ${data.Invoice_No} created successfully`;
+                    statusDiv.className = 'submit-status success';
+                    alert(`Invoice ${data.Invoice_No} created successfully`);
+
+                    form.reset();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } catch (err) {
+                    console.error(err);
+
+                    // UI: error
+                    statusDiv.textContent = err.message;
+                    statusDiv.className = 'submit-status error';
+
+                } finally {
+                    submitBtn.disabled = false;
+                }
+            });
+
+        </script>
+
+
+
+<%- include('partials/footer') %>
+
+</body>
+
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datastores</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+  <%- include('../partials/header.ejs') %>
+
+  <!-- SIDEBAR -->
+  <div class="sidebarData">
+    <ul>
+      <li><a href="#" class="mode-link active" data-mode="display">Display</a></li>
+      <li><a href="#" class="mode-link " data-mode="add">Add</a></li>
+      <li><a href="#" class="mode-link " data-mode="delete">Delete</a></li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <h2>Export table to CSV</h2>
+
+    <div class="export">
+      
+        <a href="/exportcsv/Invoices" class="export-links">Invoices</a>
+        <a href="/exportcsv/Customer" class="export-links">Customer</a>
+        <a href="/exportcsv/Firm_Table" class="export-links">Firm</a>
+        <a href="/exportcsv/Parts" class="export-links">Parts</a>
+    </div>
+
+    <!-- DISPLAY MODE -->
+    <div class="display">
+      <ul>
+        <% tables.forEach(table => { %>
+           <% if (table.Tables_in_Billing!="Cart"&&table.Tables_in_Billing!="Invoices") {%>
+          <li>
+           
+            <a href="#" class="table-link" data-table="<%= table.Tables_in_Billing %>">
+              <%= table.Tables_in_Billing %>
+            </a>
+            <div class="container" style="display:none;"></div>
+            
+          </li>
+          <% }%>
+        <% }) %>
+      </ul>
+    </div>
+
+  <!-- GLOBAL SCRIPT -->
+  <script src="/script.js"></script>
+<%- include('../partials/footer') %>
+</body>
+</html>
