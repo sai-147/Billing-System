@@ -33,17 +33,6 @@ A full-featured **Invoice Management System** built with Node.js, Express, and M
 - CSV Export capability
 - Number to Words conversion for invoices
 
-## Screenshots
-
-### Create Invoice Page
-![Create Invoice](https://github.com/sai-147/Billing-System/blob/main/screenshots/create-invoice.png)
-
-### Sales / Invoice List
-![Sales Page](https://github.com/sai-147/Billing-System/blob/main/screenshots/sales.png)
-
-### Master Page
-![Master Page](https://github.com/sai-147/Billing-System/blob/main/screenshots/master.png)
-
 ## 🛠 Tech Stack
 
 - **Backend**: Node.js + Express
